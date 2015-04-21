@@ -1,32 +1,56 @@
-#! /usr/bin/env node
+#! /usr/bin/env node --harmony
+
+//I'm using Node v0.12.2 because of harmony iteration
 
 //USAGE: ./parser.js plosthes.XXXX-X.extract.xml
 
-var fs = require('fs'),
-    xml2js = require('xml2js');
-
-var filename = process.argv[process.argv.length - 1];
-
+var fs = require('fs');
+var xml2js = require('xml2js');
 var parser = new xml2js.Parser();
+var filename = process.argv[process.argv.length - 1];
+var thesaurusVersion = filename.split('.extract.xml')[0];
+
+var Term = function(passedTerm, termIndex){
+  this.name = passedTerm.T;
+  if (passedTerm.NT){
+    this.children = [];
+    for (t of passedTerm.NT){
+      var childTerm = new Term(termIndex[t], termIndex);
+      this.children.push(childTerm);
+    }
+  }
+}
+
 
 fs.readFile(__dirname + '/' + filename, function(err, data) {
   parser.parseString(data, function(err, result) {
     //get object containing Term data
-    var terms = result['plosthes.2014-5']['TermInfo'];
+    var terms = result[thesaurusVersion]['TermInfo'];
 
-    //keep all Terms in an Object to access later
-    var keyedPlos = new Object();
+    //keep all Terms in an Object to access *by key* later
+    var termIndex = new Object();
 
-    for (var i = 0; i < terms.length; i++) {
-      //add each term to keyedPlos, keyed by Term name
-      keyedPlos[terms[i].T] = terms[i];
-    }
+    var topTerms = [];
 
     for (var i = 0; i < terms.length; i++) {
-      //
+      //add each term to index, keyed by Term name
+      termIndex[terms[i].T] = terms[i];
+
+      //populate top-level array
+      if(!terms[i].BT){
+        //there is no broader term
+        topTerms.push(terms[i]);
+      }
     }
 
-    console.log(keyedPlos);
-    console.log('Done');
+    var treeList = [];
+    for (term of topTerms){
+      var aTerm = new Term(term, termIndex);
+      treeList.push(aTerm);
+    }
+
+
+    console.log(treeList);
+
   });
 });
