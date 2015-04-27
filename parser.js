@@ -11,8 +11,9 @@ var filename = process.argv[process.argv.length - 1];
 var thesaurusVersion = filename.split('.extract.xml')[0];
 
 var Term = function(passedTerm, termIndex){
-  this.name = passedTerm.T;
+  this.name = passedTerm.T[0];
   if (passedTerm.NT){
+    //there are child terms
     this.children = [];
     for (t of passedTerm.NT){
       var childTerm = new Term(termIndex[t], termIndex);
@@ -43,14 +44,24 @@ fs.readFile(__dirname + '/' + filename, function(err, data) {
       }
     }
 
-    var treeList = [];
+    //Create top-level object to hold broadest terms from thesaurus
+    var thesaurus = {};
+    thesaurus.name = "Thesaurus";
+    thesaurus.children = [];
+
     for (term of topTerms){
       var aTerm = new Term(term, termIndex);
-      treeList.push(aTerm);
+      thesaurus.children.push(aTerm);
     }
 
 
-    console.log(treeList);
+    //make a minified version
+    var outFile = 'thesaurus_latest' + '.min.json';
+    fs.writeFile(outFile, JSON.stringify(thesaurus));
+
+    //make a pretty version
+    var outFile = thesaurusVersion + '.json';
+    fs.writeFile(outFile, JSON.stringify(thesaurus, null, 2));
 
   });
 });
